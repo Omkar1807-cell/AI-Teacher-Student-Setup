@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AI Teacher"
+description = "A focused student setup experience for an AI educator that helps learners start a personalized lesson by choosing a topic, level, language, goal, and optional PDF material."
+version = "1.0.0"
+id = "artifacts/ai-teacher"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20660
+
+[services.development]
+run = "pnpm --filter @workspace/ai-teacher run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-teacher", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-teacher/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20660"
+BASE_PATH = "/"
