@@ -1,0 +1,87 @@
+Now implement STEP 2 of the AI Teacher application.
+
+Keep the existing Student Setup UI unchanged.
+
+When the student clicks START LEARNING:
+
+1. Validate the form.
+2. Collect:
+   - topic
+   - student level
+   - language
+   - available time
+   - learning goal
+   - uploaded PDF if available
+
+3. Create a new Lesson Plan screen.
+
+For now, DO NOT add voice, avatar, video, RAG or database.
+
+Create a simple server-side API route for lesson generation.
+
+Use Gemini API only through the server side.
+Never expose the API key in frontend/client code.
+
+Environment variable:
+GEMINI_API_KEY
+
+If GEMINI_API_KEY is not configured, automatically use clearly labeled DEMO MODE so the application still works.
+
+The Lesson Plan should contain:
+
+- Topic
+- Learning objectives
+- Concepts to learn
+- Teaching order
+- Estimated time for each section
+- Examples/visuals that will be used
+- Questions that will be asked
+- Final assessment plan
+
+The AI prompt should instruct Gemini to behave as a teacher, not as a generic chatbot.
+
+The AI should personalize the lesson according to:
+- student level
+- selected language
+- available time
+- learning goal
+
+Language must be respected:
+English, Hindi, Marathi or Hinglish.
+
+For 5 minutes:
+create a very concise lesson.
+
+For 20 minutes:
+create a balanced lesson with explanation, examples and questions.
+
+For 60 minutes:
+create a deeper lesson with more examples, questions and assessment.
+
+Use structured JSON from the AI so the frontend can reliably display the lesson plan.
+
+Create a professional Lesson Plan UI with:
+- progress indicator
+- lesson objectives
+- concept cards
+- time estimates
+- examples
+- "START TEACHING" button
+- Back button
+
+Add loading states and friendly error messages.
+
+If the Gemini API is unavailable, show:
+"Demo Mode — using sample AI Teacher content"
+
+Use Newton's Laws as the default demo topic.
+
+After implementation:
+- run the app
+- fix TypeScript errors
+- fix build errors
+- test START LEARNING
+- test DEMO MODE
+- make sure the existing Student Setup screen still works.
+
+Do not implement any other major features yet.

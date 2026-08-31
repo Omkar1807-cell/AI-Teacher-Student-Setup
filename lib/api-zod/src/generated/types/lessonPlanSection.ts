@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface LessonPlanSection {
+  title: string;
+  /** @minimum 1 */
+  minutes: number;
+  description: string;
 }

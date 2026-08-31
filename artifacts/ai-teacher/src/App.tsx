@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowRight, BookOpen, Check, CircleHelp, Clock3, FileText, Globe2, GraduationCap, Lightbulb, Sparkles, Upload, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, CircleAlert, CircleHelp, ClipboardCheck, Clock3, Compass, FileText, Globe2, GraduationCap, Lightbulb, Play, Sparkles, Target, TimerReset, Upload, X } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -8,6 +8,30 @@ import NotFound from '@/pages/not-found';
 import { Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 
 const queryClient = new QueryClient();
+
+type SetupValues = {
+  topic: string;
+  level: string;
+  language: string;
+  availableTime: string;
+  learningGoal: string;
+};
+
+type LessonPlan = {
+  title: string;
+  summary: string;
+  objectives: string[];
+  concepts: string[];
+  teachingOrder: { title: string; minutes: number; description: string }[];
+  examples: string[];
+  questions: string[];
+  assessmentPlan: string;
+};
+
+type LessonResponse = {
+  mode: 'gemini' | 'demo';
+  plan: LessonPlan;
+};
 
 function Home() {
   const [topic, setTopic] = useState('');
@@ -19,8 +43,41 @@ function Home() {
   const [topicError, setTopicError] = useState('');
   const [fileError, setFileError] = useState('');
   const [started, setStarted] = useState(false);
+  const [screen, setScreen] = useState<'setup' | 'loading' | 'plan' | 'error'>('setup');
+  const [lessonResponse, setLessonResponse] = useState<LessonResponse | null>(null);
+  const [lessonError, setLessonError] = useState('');
+  const [submittedSetup, setSubmittedSetup] = useState<SetupValues | null>(null);
+  const requestVersionRef = useRef(0);
   const topicInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const requestLessonPlan = async (values: SetupValues) => {
+    const requestVersion = ++requestVersionRef.current;
+    setScreen('loading');
+    setLessonError('');
+    setLessonResponse(null);
+    setSubmittedSetup(values);
+
+    try {
+      const response = await fetch('/api/lesson-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(values),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.plan) {
+        throw new Error(payload?.error || payload?.message || 'We could not prepare your lesson plan right now.');
+      }
+      if (requestVersion !== requestVersionRef.current) return;
+      setLessonResponse(payload as LessonResponse);
+      setScreen('plan');
+    } catch (error) {
+      if (requestVersion !== requestVersionRef.current) return;
+      setLessonError(error instanceof Error ? error.message : 'We could not prepare your lesson plan right now.');
+      setScreen('error');
+    }
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,6 +89,13 @@ function Home() {
     }
     setTopicError('');
     setStarted(true);
+    void requestLessonPlan({
+      topic: topic.trim(),
+      level,
+      language,
+      availableTime,
+      learningGoal: learningGoal.trim() || 'Understand the basics',
+    });
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +117,41 @@ function Home() {
     setFileError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const backToSetup = () => {
+    requestVersionRef.current += 1;
+    setScreen('setup');
+  };
+
+  if (screen === 'loading') {
+    return <LessonPlanLoading onBack={backToSetup} />;
+  }
+
+  if (screen === 'error') {
+    return (
+      <LessonPlanError
+        message={lessonError}
+        onBack={backToSetup}
+        onRetry={submittedSetup ? () => void requestLessonPlan(submittedSetup) : undefined}
+      />
+    );
+  }
+
+  if (screen === 'plan' && lessonResponse) {
+    return (
+      <LessonPlanScreen
+        response={lessonResponse}
+        setup={{
+          topic: topic.trim(),
+          level,
+          language,
+          availableTime,
+          learningGoal: learningGoal.trim() || 'Understand the basics',
+        }}
+        onBack={backToSetup}
+      />
+    );
+  }
 
   return (
     <main className="setup-page relative min-h-[100dvh] overflow-hidden text-[hsl(var(--foreground))]">
@@ -190,6 +289,175 @@ function Home() {
           <span data-testid="text-footer-note">Made for curious minds.</span>
           <span className="hidden sm:inline" data-testid="text-footer-version">A thoughtful start to every session</span>
         </footer>
+      </div>
+    </main>
+  );
+}
+
+function LessonBrand() {
+  return (
+    <div className="flex items-center gap-3" data-testid="brand-ai-teacher-lesson">
+      <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-[hsl(var(--foreground))] text-[hsl(var(--background))] shadow-[4px_4px_0_hsl(var(--primary))]" aria-hidden="true">
+        <Sparkles size={19} strokeWidth={2.5} />
+      </div>
+      <div>
+        <p className="font-display text-[15px] font-extrabold tracking-[0.18em]">AI TEACHER</p>
+        <p className="mt-0.5 text-[11px] font-medium tracking-wide text-[hsl(var(--muted-foreground))]">Your Personal AI Educator</p>
+      </div>
+    </div>
+  );
+}
+
+function ContextItem({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <div className="lesson-context-item" data-testid={`context-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <span className="text-[hsl(var(--primary))]" aria-hidden="true">{icon}</span>
+      <span className="min-w-0"><span className="block text-[10px] font-bold uppercase tracking-[0.13em] text-[hsl(var(--muted-foreground))]">{label}</span><span className="mt-0.5 block truncate text-sm font-bold">{value}</span></span>
+    </div>
+  );
+}
+
+function LessonPlanScreen({ response, setup, onBack }: { response: LessonResponse; setup: SetupValues; onBack: () => void }) {
+  const [teachingStarted, setTeachingStarted] = useState(false);
+  const { plan } = response;
+  const totalMinutes = plan.teachingOrder.reduce((total, step) => total + Number(step.minutes || 0), 0);
+
+  return (
+    <main className="lesson-page min-h-[100dvh] text-[hsl(var(--foreground))]">
+      <div className="lesson-orbit lesson-orbit-one pointer-events-none" aria-hidden="true" />
+      <div className="lesson-orbit lesson-orbit-two pointer-events-none" aria-hidden="true" />
+      <div className="relative mx-auto w-full max-w-[1240px] px-5 py-6 sm:px-8 lg:px-12 lg:py-9">
+        <header className="reveal-up flex items-center justify-between gap-5">
+          <LessonBrand />
+          <button type="button" onClick={onBack} className="lesson-back-button" data-testid="button-back-setup">
+            <ArrowLeft size={16} strokeWidth={2.3} /> <span className="hidden sm:inline">BACK TO SETUP</span><span className="sm:hidden">BACK</span>
+          </button>
+        </header>
+
+        <section className="reveal-up-delay lesson-hero" aria-labelledby="lesson-plan-title">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="lesson-kicker"><span className="lesson-kicker-dot" aria-hidden="true" /> Step 02 <span>/ Your plan</span></p>
+            {response.mode === 'demo' && <span className="demo-badge" data-testid="status-demo-mode">DEMO MODE</span>}
+          </div>
+          <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_310px] lg:items-end lg:gap-16">
+            <div>
+              <h1 id="lesson-plan-title" className="font-display max-w-[780px] text-[clamp(2.6rem,6vw,5.3rem)] font-extrabold leading-[0.98] tracking-[-0.07em]" data-testid="text-plan-title">{plan.title}</h1>
+              <p className="mt-6 max-w-[720px] text-[17px] leading-8 text-[hsl(var(--muted-foreground))]" data-testid="text-plan-summary">{plan.summary}</p>
+            </div>
+            <div className="lesson-ready-card">
+              <div className="flex items-center justify-between gap-3"><span className="lesson-ready-icon"><Compass size={18} strokeWidth={1.8} /></span><span className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[hsl(var(--primary))]">A clear place to begin</span></div>
+              <p className="mt-4 font-display text-xl font-extrabold leading-tight">Your path is ready.</p>
+              <p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{totalMinutes || setup.availableTime.replace(/\D/g, '')} minutes, shaped around your goal.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="reveal-up-delay-2 lesson-context-grid" aria-label="Your session details">
+          <ContextItem label="Topic" value={setup.topic} icon={<BookOpen size={16} />} />
+          <ContextItem label="Level" value={setup.level} icon={<GraduationCap size={16} />} />
+          <ContextItem label="Language" value={setup.language} icon={<Globe2 size={16} />} />
+          <ContextItem label="Time" value={setup.availableTime} icon={<Clock3 size={16} />} />
+          <ContextItem label="Goal" value={setup.learningGoal} icon={<Target size={16} />} />
+        </section>
+
+        <div className="lesson-layout">
+          <div className="space-y-6">
+            <section className="lesson-card lesson-objectives-card" aria-labelledby="objectives-heading">
+              <div className="lesson-section-heading"><span className="lesson-number">01</span><div><p className="lesson-section-eyebrow">By the end</p><h2 id="objectives-heading">Learning objectives</h2></div></div>
+              <ul className="mt-7 space-y-4" data-testid="list-objectives">
+                {plan.objectives.map((objective, index) => <li key={`${objective}-${index}`} className="lesson-check-row" data-testid={`objective-${index}`}><span className="lesson-check"><Check size={14} strokeWidth={3} /></span><span>{objective}</span></li>)}
+              </ul>
+            </section>
+
+            <section className="lesson-card" aria-labelledby="concepts-heading">
+              <div className="lesson-section-heading"><span className="lesson-number lesson-number-teal">02</span><div><p className="lesson-section-eyebrow">The building blocks</p><h2 id="concepts-heading">Core concepts</h2></div></div>
+              <div className="mt-7 flex flex-wrap gap-2.5" data-testid="list-concepts">
+                {plan.concepts.map((concept, index) => <span key={`${concept}-${index}`} className="concept-pill" data-testid={`concept-${index}`}>{concept}</span>)}
+              </div>
+            </section>
+
+            <section className="lesson-card" aria-labelledby="examples-heading">
+              <div className="lesson-section-heading"><span className="lesson-number lesson-number-gold">03</span><div><p className="lesson-section-eyebrow">Make it concrete</p><h2 id="examples-heading">Examples to keep nearby</h2></div></div>
+              <div className="mt-7 grid gap-3 sm:grid-cols-2" data-testid="list-examples">
+                {plan.examples.map((example, index) => <div key={`${example}-${index}`} className="lesson-example" data-testid={`example-${index}`}><span className="example-mark" aria-hidden="true"><Lightbulb size={16} /></span><span>{example}</span></div>)}
+              </div>
+            </section>
+
+            <section className="lesson-card" aria-labelledby="questions-heading">
+              <div className="lesson-section-heading"><span className="lesson-number lesson-number-coral">04</span><div><p className="lesson-section-eyebrow">Try it yourself</p><h2 id="questions-heading">Practice questions</h2></div></div>
+              <ol className="mt-7 space-y-3" data-testid="list-questions">
+                {plan.questions.map((question, index) => <li key={`${question}-${index}`} className="lesson-question" data-testid={`question-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><p>{question}</p></li>)}
+              </ol>
+            </section>
+          </div>
+
+          <aside className="space-y-6">
+            <section className="lesson-card lesson-order-card" aria-labelledby="order-heading">
+              <div className="lesson-section-heading"><span className="lesson-number lesson-number-navy">05</span><div><p className="lesson-section-eyebrow">Your route through it</p><h2 id="order-heading">Teaching order</h2></div></div>
+              <div className="lesson-timeline mt-8" data-testid="list-teaching-order">
+                {plan.teachingOrder.map((step, index) => <div className="lesson-timeline-step" key={`${step.title}-${index}`} data-testid={`teaching-step-${index}`}><div className="lesson-step-marker">{index + 1}</div><div className="min-w-0 flex-1 pb-7"><div className="flex items-start justify-between gap-3"><h3>{step.title}</h3><span className="step-minutes">{step.minutes} min</span></div><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{step.description}</p></div></div>)}
+              </div>
+              <div className="lesson-total"><TimerReset size={16} /><span>Total focus time</span><strong>{totalMinutes} min</strong></div>
+            </section>
+
+            <section className="lesson-assessment-card" aria-labelledby="assessment-heading">
+              <div className="flex items-start gap-3"><span className="assessment-icon"><ClipboardCheck size={19} /></span><div><p className="lesson-section-eyebrow">Finish with confidence</p><h2 id="assessment-heading">How you’ll check in</h2></div></div>
+              <p className="mt-5 text-sm leading-7 text-[hsl(var(--foreground)/.82)]" data-testid="text-assessment-plan">{plan.assessmentPlan}</p>
+            </section>
+          </aside>
+        </div>
+
+        <section className="lesson-start-panel" aria-live="polite">
+          {!teachingStarted ? (
+            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+              <div><p className="lesson-section-eyebrow">When you’re ready</p><h2 className="mt-1 font-display text-2xl font-extrabold tracking-[-0.04em]">Take the first small step.</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">No pressure — this is a guided demo of your lesson path.</p></div>
+              <button type="button" onClick={() => setTeachingStarted(true)} className="lesson-start-button" data-testid="button-start-teaching"><Play size={16} fill="currentColor" /> START TEACHING</button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+              <div className="flex items-start gap-3"><span className="lesson-success-icon"><Check size={16} strokeWidth={3} /></span><div><p className="lesson-section-eyebrow">Demo lesson started</p><h2 className="mt-1 font-display text-xl font-extrabold">Begin with “{plan.teachingOrder[0]?.title || 'the first concept'}”.</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Read the outline above, then use the practice questions to make it yours.</p></div></div>
+              <button type="button" onClick={() => setTeachingStarted(false)} className="lesson-secondary-button" data-testid="button-pause-teaching">VIEW PLAN AGAIN</button>
+            </div>
+          )}
+        </section>
+
+        <footer className="mt-12 flex items-center justify-between border-t border-[hsl(var(--border)/.72)] pt-4 text-[11px] font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
+          <span>Made for curious minds.</span><span className="hidden sm:inline">A thoughtful start to every session</span>
+        </footer>
+      </div>
+    </main>
+  );
+}
+
+function LessonPlanLoading({ onBack }: { onBack: () => void }) {
+  return (
+    <main className="lesson-page min-h-[100dvh] text-[hsl(var(--foreground))]">
+      <div className="relative mx-auto w-full max-w-[1240px] px-5 py-6 sm:px-8 lg:px-12 lg:py-9">
+        <header className="flex items-center justify-between gap-5"><LessonBrand /><button type="button" onClick={onBack} className="lesson-back-button" data-testid="button-back-loading"><ArrowLeft size={16} strokeWidth={2.3} /> <span className="hidden sm:inline">BACK TO SETUP</span><span className="sm:hidden">BACK</span></button></header>
+        <section className="lesson-loading-shell" aria-live="polite" aria-busy="true" data-testid="status-plan-loading">
+          <div className="lesson-loading-icon"><Sparkles size={24} /></div>
+          <p className="lesson-kicker"><span className="lesson-kicker-dot" aria-hidden="true" /> Step 02 / Preparing your plan</p>
+          <h1 className="mt-5 font-display text-[clamp(2.4rem,6vw,4.8rem)] font-extrabold leading-none tracking-[-0.07em]">Giving your curiosity<br /><span className="text-[hsl(var(--primary))]">a clear next step.</span></h1>
+          <p className="mt-6 max-w-[500px] text-base leading-7 text-[hsl(var(--muted-foreground))]">Your teacher is arranging the ideas, examples, and practice into a path that fits your session.</p>
+          <div className="mt-10 space-y-3"><div className="lesson-skeleton lesson-skeleton-wide" /><div className="lesson-skeleton lesson-skeleton-medium" /><div className="lesson-skeleton lesson-skeleton-short" /></div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function LessonPlanError({ message, onBack, onRetry }: { message: string; onBack: () => void; onRetry?: () => void }) {
+  return (
+    <main className="lesson-page min-h-[100dvh] text-[hsl(var(--foreground))]">
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1240px] flex-col px-5 py-6 sm:px-8 lg:px-12 lg:py-9">
+        <header className="flex items-center justify-between gap-5"><LessonBrand /><button type="button" onClick={onBack} className="lesson-back-button" data-testid="button-back-error"><ArrowLeft size={16} strokeWidth={2.3} /> <span className="hidden sm:inline">BACK TO SETUP</span><span className="sm:hidden">BACK</span></button></header>
+        <section className="lesson-error-shell my-auto" role="alert" data-testid="status-plan-error">
+          <div className="lesson-error-icon"><CircleAlert size={26} /></div>
+          <p className="lesson-kicker"><span className="lesson-kicker-dot" aria-hidden="true" /> One small pause</p>
+          <h1 className="mt-5 font-display text-4xl font-extrabold tracking-[-0.06em] sm:text-6xl">Your plan needs<br /><span className="text-[hsl(var(--primary))]">another moment.</span></h1>
+          <p className="mt-6 max-w-[510px] text-base leading-7 text-[hsl(var(--muted-foreground))]">{message}</p>
+          <div className="mt-8 flex flex-wrap gap-3"><button type="button" onClick={onBack} className="lesson-secondary-button" data-testid="button-return-setup">RETURN TO SETUP</button>{onRetry && <button type="button" onClick={onRetry} className="lesson-start-button" data-testid="button-retry-plan"><ArrowRight size={16} /> TRY AGAIN</button>}</div>
+        </section>
       </div>
     </main>
   );
