@@ -21,22 +21,21 @@ type GeminiResponse = {
   }>;
 };
 
-const demoCopy: Record<
-  LessonLanguage,
-  {
-    title: string;
-    summary: string;
-    objectives: string[];
-    concepts: string[];
-    examples: string[];
-    questions: string[];
-    assessmentPlan: string;
-    sections: Record<
-      "5 minutes" | "20 minutes" | "60 minutes",
-      Array<{ title: string; minutes: number; description: string }>
-    >;
-  }
-> = {
+type DemoCopy = {
+  title: string;
+  summary: string;
+  objectives: string[];
+  concepts: string[];
+  examples: string[];
+  questions: string[];
+  assessmentPlan: string;
+  sections: Record<
+    "5 minutes" | "20 minutes" | "60 minutes",
+    Array<{ title: string; minutes: number; description: string }>
+  >;
+};
+
+const demoCopy: Record<LessonLanguage, DemoCopy> = {
   English: {
     title: "Newton's Laws: the essential guide",
     summary:
@@ -189,8 +188,185 @@ const demoCopy: Record<
   },
 };
 
+function isNewtonTopic(topic: string): boolean {
+  const normalizedTopic = topic.toLowerCase().replace(/[’']/g, "");
+  return (
+    normalizedTopic.includes("newton") ||
+    normalizedTopic.includes("न्यूटन") ||
+    normalizedTopic.includes("न्युटन")
+  );
+}
+
+function getDynamicDemoCopy(input: LessonPlanInput): DemoCopy {
+  const topic = input.topic.trim();
+  const localizedCopy: Record<LessonLanguage, DemoCopy> = {
+    English: {
+      title: `${topic}: a focused guide`,
+      summary: `A focused sample lesson that builds a clear foundation in ${topic}. It is shaped around your goal: ${input.learningGoal}.`,
+      objectives: [
+        `Explain the central idea behind ${topic} in your own words.`,
+        `Recognize the most important parts of ${topic}.`,
+        `Connect ${topic} to a familiar real-world situation.`,
+      ],
+      concepts: [topic, `Key ideas in ${topic}`, `Everyday applications of ${topic}`],
+      examples: [
+        `Start with one familiar situation that makes ${topic} easier to picture.`,
+        `Notice how ${topic} appears in an everyday observation or activity.`,
+      ],
+      questions: [
+        `What is the main idea you already notice in ${topic}?`,
+        `Which part of ${topic} would you explain to a friend?`,
+        `Where might you see ${topic} in daily life?`,
+      ],
+      assessmentPlan: `Finish by explaining the main idea of ${topic}, naming two key parts, and connecting it to one everyday example.`,
+      sections: {
+        "5 minutes": [
+          { title: "Quick picture", minutes: 1, description: `Connect ${topic} to something familiar.` },
+          { title: "Core idea", minutes: 2, description: `Build the central idea of ${topic}.` },
+          { title: "Understanding check", minutes: 2, description: `Answer one short question about ${topic}.` },
+        ],
+        "20 minutes": [
+          { title: "Warm-up", minutes: 3, description: `Start from what you already know about ${topic}.` },
+          { title: "Core idea", minutes: 7, description: `Build the main ideas in ${topic} step by step.` },
+          { title: "Work through examples", minutes: 6, description: `Apply ${topic} to familiar situations.` },
+          { title: "Quick assessment", minutes: 4, description: `Check the most important ideas from ${topic}.` },
+        ],
+        "60 minutes": [
+          { title: "Warm-up and prior knowledge", minutes: 8, description: `Explore what you already notice about ${topic}.` },
+          { title: "Build the foundation", minutes: 12, description: `Learn the essential building blocks of ${topic}.` },
+          { title: "Work through examples", minutes: 15, description: `Apply ${topic} to several concrete situations.` },
+          { title: "Practice and connect", minutes: 15, description: `Use ${topic} to reason through new questions.` },
+          { title: "Review and assessment", minutes: 10, description: `Review ${topic} and explain it in your own words.` },
+        ],
+      },
+    },
+    Hindi: {
+      title: `${topic}: एक केंद्रित पाठ`,
+      summary: `${topic} की स्पष्ट नींव बनाने वाला यह छोटा पाठ आपके लक्ष्य के अनुसार है: ${input.learningGoal}।`,
+      objectives: [
+        `${topic} के मुख्य विचार को अपने शब्दों में समझाना।`,
+        `${topic} के सबसे महत्वपूर्ण हिस्सों को पहचानना।`,
+        `${topic} को रोज़मर्रा की किसी स्थिति से जोड़ना।`,
+      ],
+      concepts: [topic, `${topic} के मुख्य विचार`, `${topic} का रोज़मर्रा में उपयोग`],
+      examples: [
+        `${topic} को समझने के लिए एक परिचित स्थिति से शुरुआत करें।`,
+        `देखें कि ${topic} किसी रोज़मर्रा के अनुभव में कैसे दिखाई देता है।`,
+      ],
+      questions: [
+        `${topic} में आपको कौन सा मुख्य विचार दिखाई देता है?`,
+        `${topic} का कौन सा हिस्सा आप किसी दोस्त को समझाएँगे?`,
+        `आप रोज़मर्रा की ज़िंदगी में ${topic} को कहाँ देख सकते हैं?`,
+      ],
+      assessmentPlan: `${topic} का मुख्य विचार समझाएँ, उसके दो महत्वपूर्ण हिस्से बताएँ और उसे एक रोज़मर्रा के उदाहरण से जोड़ें।`,
+      sections: {
+        "5 minutes": [
+          { title: "छोटी शुरुआत", minutes: 1, description: `${topic} को किसी परिचित चीज़ से जोड़ें।` },
+          { title: "मुख्य विचार", minutes: 2, description: `${topic} का केंद्रीय विचार समझें।` },
+          { title: "समझ की जाँच", minutes: 2, description: `${topic} पर एक छोटा सवाल हल करें।` },
+        ],
+        "20 minutes": [
+          { title: "वार्म-अप", minutes: 3, description: `${topic} के बारे में आपकी जानकारी से शुरुआत करें।` },
+          { title: "मुख्य विचार", minutes: 7, description: `${topic} के मुख्य विचारों को धीरे-धीरे समझें।` },
+          { title: "उदाहरणों से सीखें", minutes: 6, description: `${topic} को परिचित स्थितियों पर लागू करें।` },
+          { title: "छोटी जाँच", minutes: 4, description: `${topic} के सबसे ज़रूरी विचारों को जाँचें।` },
+        ],
+        "60 minutes": [
+          { title: "वार्म-अप और पुरानी जानकारी", minutes: 8, description: `${topic} के बारे में आप पहले से क्या जानते हैं, देखें।` },
+          { title: "नींव बनाएँ", minutes: 12, description: `${topic} के ज़रूरी आधारभूत विचार सीखें।` },
+          { title: "उदाहरणों से सीखें", minutes: 15, description: `${topic} को कई ठोस स्थितियों पर लागू करें।` },
+          { title: "अभ्यास और जोड़", minutes: 15, description: `${topic} से जुड़े नए सवालों पर विचार करें।` },
+          { title: "दोहराव और जाँच", minutes: 10, description: `${topic} को दोहराएँ और अपने शब्दों में समझाएँ।` },
+        ],
+      },
+    },
+    Marathi: {
+      title: `${topic}: एक केंद्रित धडा`,
+      summary: `${topic} ची स्पष्ट पायाभरणी करणारा हा छोटा धडा तुमच्या ध्येयाभोवती तयार केला आहे: ${input.learningGoal}.`,
+      objectives: [
+        `${topic} मागचा मुख्य विचार स्वतःच्या शब्दांत समजावून सांगणे.`,
+        `${topic} मधील महत्त्वाचे भाग ओळखणे.`,
+        `${topic} ला रोजच्या जीवनातील एका परिचित परिस्थितीशी जोडणे.`,
+      ],
+      concepts: [topic, `${topic} मधील मुख्य कल्पना`, `${topic} चा दैनंदिन उपयोग`],
+      examples: [
+        `${topic} समजण्यासाठी एका परिचित परिस्थितीपासून सुरुवात करा.`,
+        `${topic} रोजच्या अनुभवात कुठे दिसतो ते पाहा.`,
+      ],
+      questions: [
+        `${topic} मधील मुख्य कल्पना तुम्हाला कोणती दिसते?`,
+        `${topic} मधील कोणता भाग तुम्ही मित्राला समजावून सांगाल?`,
+        `दैनंदिन जीवनात ${topic} तुम्हाला कुठे दिसतो?`,
+      ],
+      assessmentPlan: `${topic} मधील मुख्य कल्पना समजावून सांगा, दोन महत्त्वाचे भाग सांगा आणि एका रोजच्या उदाहरणाशी जोडा.`,
+      sections: {
+        "5 minutes": [
+          { title: "लहान सुरुवात", minutes: 1, description: `${topic} ला एका परिचित गोष्टीशी जोडा.` },
+          { title: "मुख्य कल्पना", minutes: 2, description: `${topic} मधील मध्यवर्ती कल्पना समजून घ्या.` },
+          { title: "समज तपासणी", minutes: 2, description: `${topic} वर एक छोटा प्रश्न सोडवा.` },
+        ],
+        "20 minutes": [
+          { title: "वार्म-अप", minutes: 3, description: `${topic} बद्दल तुम्हाला आधीपासून काय माहीत आहे यापासून सुरुवात करा.` },
+          { title: "मुख्य कल्पना", minutes: 7, description: `${topic} मधील मुख्य कल्पना टप्प्याटप्प्याने समजून घ्या.` },
+          { title: "उदाहरणांमधून शिका", minutes: 6, description: `${topic} परिचित परिस्थितींवर लागू करा.` },
+          { title: "लहान तपासणी", minutes: 4, description: `${topic} मधील महत्त्वाच्या कल्पना तपासा.` },
+        ],
+        "60 minutes": [
+          { title: "वार्म-अप आणि पूर्वज्ञान", minutes: 8, description: `${topic} बद्दल तुम्हाला आधीपासून काय जाणवते ते पाहा.` },
+          { title: "पायाभरणी", minutes: 12, description: `${topic} मधील आवश्यक मूलभूत कल्पना शिका.` },
+          { title: "उदाहरणांमधून शिका", minutes: 15, description: `${topic} अनेक ठोस परिस्थितींवर लागू करा.` },
+          { title: "सराव आणि जोडणी", minutes: 15, description: `${topic} वापरून नवीन प्रश्नांचा विचार करा.` },
+          { title: "उजळणी आणि तपासणी", minutes: 10, description: `${topic} ची उजळणी करा आणि स्वतःच्या शब्दांत समजावून सांगा.` },
+        ],
+      },
+    },
+    Hinglish: {
+      title: `${topic}: ek focused guide`,
+      summary: `Yeh short lesson ${topic} ki clear foundation banata hai aur tumhare goal ke around hai: ${input.learningGoal}.`,
+      objectives: [
+        `${topic} ka central idea apne words mein explain karna.`,
+        `${topic} ke sabse important parts identify karna.`,
+        `${topic} ko ek familiar real-world situation se connect karna.`,
+      ],
+      concepts: [topic, `${topic} ke key ideas`, `${topic} ka everyday use`],
+      examples: [
+        `${topic} ko samajhne ke liye ek familiar situation se start karo.`,
+        `Notice karo ki ${topic} daily experience mein kahan dikhai deta hai.`,
+      ],
+      questions: [
+        `${topic} mein tumhe kaunsa main idea nazar aata hai?`,
+        `${topic} ka kaunsa part tum apne friend ko samjhaoge?`,
+        `Daily life mein tum ${topic} ko kahan dekh sakte ho?`,
+      ],
+      assessmentPlan: `${topic} ka main idea explain karo, do important parts batao, aur use ek everyday example se connect karo.`,
+      sections: {
+        "5 minutes": [
+          { title: "Quick picture", minutes: 1, description: `${topic} ko ek familiar cheez se connect karo.` },
+          { title: "Main idea", minutes: 2, description: `${topic} ka central idea samjho.` },
+          { title: "Understanding check", minutes: 2, description: `${topic} par ek short question solve karo.` },
+        ],
+        "20 minutes": [
+          { title: "Warm-up", minutes: 3, description: `${topic} ke baare mein jo tum jaante ho usse start karo.` },
+          { title: "Main idea", minutes: 7, description: `${topic} ke main ideas step by step build karo.` },
+          { title: "Examples", minutes: 6, description: `${topic} ko familiar situations par apply karo.` },
+          { title: "Quick assessment", minutes: 4, description: `${topic} ke important ideas check karo.` },
+        ],
+        "60 minutes": [
+          { title: "Warm-up aur prior knowledge", minutes: 8, description: `${topic} ke baare mein tum pehle se kya notice karte ho, explore karo.` },
+          { title: "Foundation banao", minutes: 12, description: `${topic} ke essential building blocks seekho.` },
+          { title: "Examples", minutes: 15, description: `${topic} ko concrete situations par apply karo.` },
+          { title: "Practice aur connect", minutes: 15, description: `${topic} se naye questions ko reason karo.` },
+          { title: "Review aur assessment", minutes: 10, description: `${topic} ko review karke apne words mein explain karo.` },
+        ],
+      },
+    },
+  };
+
+  return localizedCopy[input.language];
+}
+
 function getDemoPlan(input: LessonPlanInput): LessonPlan {
-  const copy = demoCopy[input.language];
+  const copy = isNewtonTopic(input.topic) ? demoCopy[input.language] : getDynamicDemoCopy(input);
   const levelDescription =
     input.level === "Beginner"
       ? "starting with the essentials"
