@@ -36,6 +36,7 @@ type LessonResponse = {
 type TeachingMessageRequest = {
   setup: SetupValues;
   lesson: LessonResponse;
+  messages: ConversationMessage[];
   question: string;
 };
 
@@ -511,7 +512,12 @@ function TeachingScreen({ response, setup, onBack }: { response: LessonResponse;
     setIsSending(true);
 
     try {
-      const result = await requestTeachingMessage({ setup, lesson: response, question: trimmedQuestion });
+      const result = await requestTeachingMessage({
+        setup,
+        lesson: response,
+        messages,
+        question: trimmedQuestion,
+      });
       setMessages((current) => [...current, {
         id: `teacher-${Date.now()}`,
         role: 'teacher',

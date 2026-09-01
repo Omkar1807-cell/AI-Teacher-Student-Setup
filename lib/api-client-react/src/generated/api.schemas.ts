@@ -78,9 +78,28 @@ export interface LessonPlanResponse {
   plan: LessonPlan;
 }
 
+export type TeachingMessageRole = typeof TeachingMessageRole[keyof typeof TeachingMessageRole];
+
+
+export const TeachingMessageRole = {
+  teacher: 'teacher',
+  student: 'student',
+} as const;
+
+export interface TeachingMessage {
+  role: TeachingMessageRole;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  text: string;
+}
+
 export interface TeachingMessageInput {
   setup: LessonPlanInput;
   lesson: LessonPlanResponse;
+  /** @maxItems 30 */
+  messages: TeachingMessage[];
   /**
      * @minLength 1
      * @maxLength 2000

@@ -23,29 +23,50 @@ type GeminiResponse = {
 function getDemoTeachingReply(
   input: {
     setup: LessonPlanInput;
+    messages: Array<{ role: "teacher" | "student"; text: string }>;
     question: string;
   },
 ): string {
-  const { setup, question } = input;
+  const { setup, messages, question } = input;
   const normalizedQuestion = question.toLowerCase();
+  const conversationText = messages.map((message) => message.text).join(" ").toLowerCase();
   const asksSecondLaw =
     normalizedQuestion.includes("second law") ||
     normalizedQuestion.includes("2nd law") ||
     normalizedQuestion.includes("दूसरा नियम") ||
     normalizedQuestion.includes("दुसरा नियम") ||
-    normalizedQuestion.includes("दूसरा नियम");
+    normalizedQuestion.includes("दूसरा नियम") ||
+    conversationText.includes("second law") ||
+    conversationText.includes("2nd law") ||
+    conversationText.includes("दूसरा नियम") ||
+    conversationText.includes("दुसरा नियम") ||
+    conversationText.includes("f = ma");
+  const asksForExample =
+    normalizedQuestion.includes("example") ||
+    normalizedQuestion.includes("उदाहरण") ||
+    normalizedQuestion.includes("example batao") ||
+    normalizedQuestion.includes("example do") ||
+    normalizedQuestion.includes("example dya");
 
   const replies: Record<LessonLanguage, string> = {
-    English: asksSecondLaw
+    English: asksForExample && asksSecondLaw
+      ? `Here is one example of Newton's Second Law: when you kick a football harder, it accelerates more. The force of your kick creates the acceleration, while a heavier ball would need more force for the same change in motion. Which part of this example shows the force?`
+      : asksSecondLaw
       ? `Newton's Second Law says that force, mass, and acceleration are connected by F = ma. In simple terms, a stronger push gives more acceleration, while a heavier object needs more force for the same acceleration. For example, an empty shopping cart speeds up more than a full cart when you push both with the same force. Does this relationship make sense with an example from your day?`
       : `For your question, "${question}", let’s connect the answer to ${setup.topic}. At a ${setup.level} level, start by identifying the main idea, then link it to one familiar example. What part of this idea would you like to unpack first?`,
-    Hindi: asksSecondLaw
+    Hindi: asksForExample && asksSecondLaw
+      ? `न्यूटन के दूसरे नियम का एक उदाहरण देखें: जब आप फुटबॉल को ज़ोर से किक करते हैं, तो वह ज़्यादा त्वरण से आगे जाती है। आपके किक का बल त्वरण पैदा करता है, और भारी गेंद को उतना ही बदलाव देने के लिए ज़्यादा बल चाहिए। इस उदाहरण में बल कहाँ दिखाई दे रहा है?`
+      : asksSecondLaw
       ? `न्यूटन का दूसरा नियम बताता है कि बल, द्रव्यमान और त्वरण का संबंध F = ma से होता है। आसान शब्दों में, ज़्यादा धक्का देने पर त्वरण बढ़ता है, और भारी वस्तु को उतना ही त्वरण देने के लिए ज़्यादा बल चाहिए। जैसे, एक खाली शॉपिंग ट्रॉली उसी धक्के से भरी ट्रॉली से जल्दी गति पकड़ती है। क्या आप अपने रोज़मर्रा के जीवन का ऐसा उदाहरण बता सकते हैं?`
       : `आपके सवाल "${question}" का जवाब ${setup.topic} की मुख्य बात से जुड़ा है। ${setup.level} स्तर पर पहले मुख्य विचार पहचानें और फिर उसे एक परिचित उदाहरण से जोड़ें। इस विचार का कौन सा हिस्सा आपको और समझना है?`,
-    Marathi: asksSecondLaw
+    Marathi: asksForExample && asksSecondLaw
+      ? `न्यूटनच्या दुसऱ्या नियमाचे एक उदाहरण पाहूया: फुटबॉलला जास्त जोरात किक मारल्यावर तो जास्त त्वरणाने पुढे जातो. तुमच्या किकचे बल त्वरण निर्माण करते; आणि जड चेंडूला तेवढाच बदल घडवण्यासाठी जास्त बल लागते. या उदाहरणात बल कुठे दिसते?`
+      : asksSecondLaw
       ? `न्यूटनचा दुसरा नियम बल, वस्तुमान आणि त्वरण यांचा संबंध F = ma असा सांगतो. सोप्या भाषेत, जास्त जोर लावल्यास त्वरण वाढते; आणि जड वस्तूला तेवढेच त्वरण देण्यासाठी जास्त बल लागते. उदाहरणार्थ, समान जोर लावल्यावर रिकामी खरेदीची ट्रॉली भरलेल्या ट्रॉलीपेक्षा लवकर वेग घेते. तुमच्या रोजच्या जीवनातील असे उदाहरण कोणते?`
       : `तुमच्या प्रश्नाचे उत्तर "${question}" हे ${setup.topic} मधील मुख्य कल्पनेशी जोडूया. ${setup.level} स्तरावर आधी मुख्य मुद्दा ओळखा आणि मग तो परिचित उदाहरणाशी जोडा. या कल्पनेतील कोणता भाग तुम्हाला अजून समजून घ्यायचा आहे?`,
-    Hinglish: asksSecondLaw
+    Hinglish: asksForExample && asksSecondLaw
+      ? `Newton's Second Law ka ek example dekho: jab tum football ko harder kick karte ho, ball zyada acceleration ke saath aage jaati hai. Tumhari kick ka force acceleration create karta hai, aur heavier ball ko same motion change ke liye zyada force chahiye. Is example mein force kahan dikh raha hai?`
+      : asksSecondLaw
       ? `Newton's Second Law bolta hai ki force, mass aur acceleration ka relation F = ma hota hai. Simple words mein, stronger push se acceleration badhta hai, aur heavier object ko same acceleration ke liye zyada force chahiye. Example: same push dene par empty shopping cart, full cart se jaldi speed pakadti hai. Kya tum apni daily life ka aisa example bata sakte ho?`
       : `Tumhare question "${question}" ko ${setup.topic} ke main idea se connect karte hain. ${setup.level} level par pehle main point identify karo, phir use ek familiar example se jodo. Is idea ka kaunsa part tum aur samajhna chahoge?`,
   };
@@ -64,9 +85,14 @@ function getTeachingPrompt(input: {
       teachingOrder: Array<{ title: string; minutes: number; description: string }>;
     };
   };
+  messages: Array<{ role: "teacher" | "student"; text: string }>;
   question: string;
 }): string {
-  const { setup, lesson, question } = input;
+  const { setup, lesson, messages, question } = input;
+  const conversation = messages.length
+    ? messages.map((message) => `${message.role === "teacher" ? "AI Teacher" : "Student"}: ${message.text}`).join("\n")
+    : "(No previous messages.)";
+
   return `You are the AI Teacher in an ongoing lesson. Answer the student's actual question specifically; do not give a generic response or ask them to clarify unless the question is genuinely impossible to understand.
 
 Student setup:
@@ -82,11 +108,15 @@ Lesson context:
 - Concepts: ${lesson.plan.concepts.join(", ")}
 - Teaching order: ${lesson.plan.teachingOrder.map((step) => step.title).join(" -> ")}
 
+Previous conversation:
+${conversation}
+
 Student's exact question:
 ${question}
 
 Response requirements:
 - Answer that exact question first and stay focused on ${setup.topic}.
+- Use the previous conversation to resolve short follow-ups such as "give one example", "why?", or "what about this?" instead of treating them as new unrelated questions.
 - Use language ${setup.language}. For Hinglish, use a natural Hindi-English mix. Do not switch languages.
 - Match the explanation to a ${setup.level} student.
 - Use a simple real-world example when it helps. If the question is about Newton's Second Law, explain F = ma plainly and include a concrete everyday example.
@@ -105,6 +135,7 @@ async function generateWithGemini(input: {
       teachingOrder: Array<{ title: string; minutes: number; description: string }>;
     };
   };
+  messages: Array<{ role: "teacher" | "student"; text: string }>;
   question: string;
 }): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;

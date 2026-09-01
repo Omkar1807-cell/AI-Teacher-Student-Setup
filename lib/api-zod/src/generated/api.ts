@@ -62,6 +62,10 @@ export const GenerateLessonPlanResponse = zod.object({
 
 
 
+export const generateTeachingMessageBodyMessagesItemTextMax = 2000;
+
+export const generateTeachingMessageBodyMessagesMax = 30;
+
 export const generateTeachingMessageBodyQuestionMax = 2000;
 
 
@@ -91,6 +95,10 @@ export const GenerateTeachingMessageBody = zod.object({
   "assessmentPlan": zod.string()
 })
 }),
+  "messages": zod.array(zod.object({
+  "role": zod.enum(['teacher', 'student']),
+  "text": zod.string().min(1).max(generateTeachingMessageBodyMessagesItemTextMax)
+})).max(generateTeachingMessageBodyMessagesMax),
   "question": zod.string().min(1).max(generateTeachingMessageBodyQuestionMax)
 })
 

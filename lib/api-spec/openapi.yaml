@@ -165,11 +165,27 @@ components:
           $ref: "#/components/schemas/LessonPlanInput"
         lesson:
           $ref: "#/components/schemas/LessonPlanResponse"
+        messages:
+          type: array
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/TeachingMessage"
         question:
           type: string
           minLength: 1
           maxLength: 2000
-      required: [setup, lesson, question]
+      required: [setup, lesson, messages, question]
+    TeachingMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [teacher, student]
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required: [role, text]
     TeachingMessageResponse:
       type: object
       properties:

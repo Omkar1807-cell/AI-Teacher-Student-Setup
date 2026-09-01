@@ -7,10 +7,13 @@
  */
 import type { LessonPlanInput } from './lessonPlanInput';
 import type { LessonPlanResponse } from './lessonPlanResponse';
+import type { TeachingMessage } from './teachingMessage';
 
 export interface TeachingMessageInput {
   setup: LessonPlanInput;
   lesson: LessonPlanResponse;
+  /** @maxItems 30 */
+  messages: TeachingMessage[];
   /**
      * @minLength 1
      * @maxLength 2000

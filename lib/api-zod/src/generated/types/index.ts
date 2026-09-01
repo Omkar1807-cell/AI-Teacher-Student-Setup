@@ -15,6 +15,8 @@ export * from './lessonPlanInputLevel';
 export * from './lessonPlanResponse';
 export * from './lessonPlanResponseMode';
 export * from './lessonPlanSection';
+export * from './teachingMessage';
 export * from './teachingMessageInput';
 export * from './teachingMessageResponse';
 export * from './teachingMessageResponseMode';
+export * from './teachingMessageRole';
