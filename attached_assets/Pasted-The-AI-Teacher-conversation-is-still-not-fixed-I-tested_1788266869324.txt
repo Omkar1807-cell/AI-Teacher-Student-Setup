@@ -1,0 +1,35 @@
+The AI Teacher conversation is still not fixed.
+
+I tested the live Preview after your previous changes.
+
+When I ask:
+1. "what is newtons 1st law of motion"
+2. "give one example"
+
+the second response is still the same generic template:
+"For your question, 'give one example', let's connect the answer to newtons law of motion..."
+
+Fix the ACTUAL response-generation logic.
+
+IMPORTANT:
+- Do NOT redesign or change any existing UI.
+- Do NOT change the Student Setup flow.
+- Keep the existing screens and styling exactly as they are.
+- Do NOT simply change the fallback text.
+- The student's latest question must be answered using the previous conversation context.
+- If the student says "give one example", "why?", "explain this", "what about this?", etc., resolve what "this" refers to from the previous teacher/student messages.
+- Use the selected topic, level, and language from Student Setup.
+- For example, after "what is Newton's 1st law of motion", if the student asks "give one example", answer with a simple real-world example of Newton's FIRST law, not a generic teaching prompt.
+- For "what is second law of motion", give a beginner-friendly explanation including F = ma and a simple real-world example.
+- After each explanation, ask ONE short understanding-check question.
+- Gemini/API must remain server-side. Never expose the API key in frontend code.
+- Keep the demo fallback only for actual API failure/unavailability.
+- The normal successful API response must NOT use the generic demo fallback/template.
+- Inspect the existing code and find exactly where the generic response "For your question..." is being generated.
+- Fix that path so successful Gemini responses are displayed to the student.
+- Preserve conversation history between messages.
+- Test the actual live flow:
+  Student Setup → Start Teaching → "what is Newton's 1st law of motion" → "give one example"
+- Also test:
+  "what is second law of motion"
+- Show me the actual responses from both tests and confirm whether they came from Gemini or the demo fallback.
