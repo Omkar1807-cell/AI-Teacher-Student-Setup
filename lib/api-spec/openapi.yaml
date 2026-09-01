@@ -49,6 +49,29 @@ paths:
           description: Invalid setup choices
         "500":
           description: Lesson plan generation failed
+  /teaching-message:
+    post:
+      operationId: generateTeachingMessage
+      tags: [lessons]
+      summary: Answer a student's lesson question
+      description: Answers a student's question using the selected lesson context.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeachingMessageInput"
+      responses:
+        "200":
+          description: Teaching response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeachingMessageResponse"
+        "400":
+          description: Invalid teaching message
+        "500":
+          description: Teaching response failed
 components:
   schemas:
     HealthStatus:
@@ -135,4 +158,25 @@ components:
         plan:
           $ref: "#/components/schemas/LessonPlan"
       required: [mode, plan]
+    TeachingMessageInput:
+      type: object
+      properties:
+        setup:
+          $ref: "#/components/schemas/LessonPlanInput"
+        lesson:
+          $ref: "#/components/schemas/LessonPlanResponse"
+        question:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required: [setup, lesson, question]
+    TeachingMessageResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [gemini, demo]
+        message:
+          type: string
+      required: [mode, message]
 

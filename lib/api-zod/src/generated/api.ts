@@ -55,3 +55,48 @@ export const GenerateLessonPlanResponse = zod.object({
 })
 
 
+/**
+ * Answers a student's question using the selected lesson context.
+ * @summary Answer a student's lesson question
+ */
+
+
+
+export const generateTeachingMessageBodyQuestionMax = 2000;
+
+
+
+export const GenerateTeachingMessageBody = zod.object({
+  "setup": zod.object({
+  "topic": zod.string().min(1),
+  "level": zod.enum(['Beginner', 'Intermediate', 'Advanced']),
+  "language": zod.enum(['English', 'Hindi', 'Marathi', 'Hinglish']),
+  "availableTime": zod.enum(['5 minutes', '20 minutes', '60 minutes']),
+  "learningGoal": zod.string().min(1)
+}),
+  "lesson": zod.object({
+  "mode": zod.enum(['gemini', 'demo']),
+  "plan": zod.object({
+  "title": zod.string(),
+  "summary": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "concepts": zod.array(zod.string()),
+  "teachingOrder": zod.array(zod.object({
+  "title": zod.string(),
+  "minutes": zod.number().min(1),
+  "description": zod.string()
+})),
+  "examples": zod.array(zod.string()),
+  "questions": zod.array(zod.string()),
+  "assessmentPlan": zod.string()
+})
+}),
+  "question": zod.string().min(1).max(generateTeachingMessageBodyQuestionMax)
+})
+
+export const GenerateTeachingMessageResponse = zod.object({
+  "mode": zod.enum(['gemini', 'demo']),
+  "message": zod.string()
+})
+
+

@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, BookOpen, Check, CircleAlert, CircleHelp, ClipboardCheck, Clock3, Compass, FileText, Globe2, GraduationCap, Lightbulb, Play, Sparkles, Target, TimerReset, Upload, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, CircleAlert, CircleHelp, ClipboardCheck, Clock3, Compass, FileText, Globe2, GraduationCap, Lightbulb, MessageCircle, Play, Send, Sparkles, Target, TimerReset, Upload, UserRound, X } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -33,6 +33,31 @@ type LessonResponse = {
   plan: LessonPlan;
 };
 
+type TeachingMessageRequest = {
+  setup: SetupValues;
+  lesson: LessonResponse;
+  question: string;
+};
+
+type TeachingMessageResponse = {
+  message: string;
+};
+
+// The only teaching API seam: the backend can take over this helper without changing the screen.
+const requestTeachingMessage = async (request: TeachingMessageRequest): Promise<TeachingMessageResponse> => {
+  const response = await fetch('/api/teaching-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || typeof payload?.message !== 'string') {
+    throw new Error(payload?.error || 'The teacher is taking a quiet pause.');
+  }
+  return payload as TeachingMessageResponse;
+};
+
 function Home() {
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState('Beginner');
@@ -43,7 +68,7 @@ function Home() {
   const [topicError, setTopicError] = useState('');
   const [fileError, setFileError] = useState('');
   const [started, setStarted] = useState(false);
-  const [screen, setScreen] = useState<'setup' | 'loading' | 'plan' | 'error'>('setup');
+  const [screen, setScreen] = useState<'setup' | 'loading' | 'plan' | 'teaching' | 'error'>('setup');
   const [lessonResponse, setLessonResponse] = useState<LessonResponse | null>(null);
   const [lessonError, setLessonError] = useState('');
   const [submittedSetup, setSubmittedSetup] = useState<SetupValues | null>(null);
@@ -149,6 +174,17 @@ function Home() {
           learningGoal: learningGoal.trim() || 'Understand the basics',
         }}
         onBack={backToSetup}
+        onStartTeaching={() => setScreen('teaching')}
+      />
+    );
+  }
+
+  if (screen === 'teaching' && lessonResponse && submittedSetup) {
+    return (
+      <TeachingScreen
+        response={lessonResponse}
+        setup={submittedSetup}
+        onBack={() => setScreen('plan')}
       />
     );
   }
@@ -317,8 +353,7 @@ function ContextItem({ label, value, icon }: { label: string; value: string; ico
   );
 }
 
-function LessonPlanScreen({ response, setup, onBack }: { response: LessonResponse; setup: SetupValues; onBack: () => void }) {
-  const [teachingStarted, setTeachingStarted] = useState(false);
+function LessonPlanScreen({ response, setup, onBack, onStartTeaching }: { response: LessonResponse; setup: SetupValues; onBack: () => void; onStartTeaching: () => void }) {
   const { plan } = response;
   const totalMinutes = plan.teachingOrder.reduce((total, step) => total + Number(step.minutes || 0), 0);
 
@@ -408,18 +443,177 @@ function LessonPlanScreen({ response, setup, onBack }: { response: LessonRespons
         </div>
 
         <section className="lesson-start-panel" aria-live="polite">
-          {!teachingStarted ? (
-            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-              <div><p className="lesson-section-eyebrow">When you’re ready</p><h2 className="mt-1 font-display text-2xl font-extrabold tracking-[-0.04em]">Take the first small step.</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">No pressure — this is a guided demo of your lesson path.</p></div>
-              <button type="button" onClick={() => setTeachingStarted(true)} className="lesson-start-button" data-testid="button-start-teaching"><Play size={16} fill="currentColor" /> START TEACHING</button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-              <div className="flex items-start gap-3"><span className="lesson-success-icon"><Check size={16} strokeWidth={3} /></span><div><p className="lesson-section-eyebrow">Demo lesson started</p><h2 className="mt-1 font-display text-xl font-extrabold">Begin with “{plan.teachingOrder[0]?.title || 'the first concept'}”.</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Read the outline above, then use the practice questions to make it yours.</p></div></div>
-              <button type="button" onClick={() => setTeachingStarted(false)} className="lesson-secondary-button" data-testid="button-pause-teaching">VIEW PLAN AGAIN</button>
-            </div>
-          )}
+          <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+            <div><p className="lesson-section-eyebrow">When you’re ready</p><h2 className="mt-1 font-display text-2xl font-extrabold tracking-[-0.04em]">Take the first small step.</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">No pressure — this is a guided demo of your lesson path.</p></div>
+            <button type="button" onClick={onStartTeaching} className="lesson-start-button" data-testid="button-start-teaching"><Play size={16} fill="currentColor" /> START TEACHING</button>
+          </div>
         </section>
+
+        <footer className="mt-12 flex items-center justify-between border-t border-[hsl(var(--border)/.72)] pt-4 text-[11px] font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
+          <span>Made for curious minds.</span><span className="hidden sm:inline">A thoughtful start to every session</span>
+        </footer>
+      </div>
+    </main>
+  );
+}
+
+type ConversationMessage = {
+  id: string;
+  role: 'teacher' | 'student';
+  text: string;
+};
+
+function getOpeningExplanation(response: LessonResponse, setup: SetupValues) {
+  const concept = response.plan.concepts[0] || response.plan.teachingOrder[0]?.title || setup.topic;
+  const summary = response.plan.summary;
+  const openings: Record<SetupValues['language'], string> = {
+    Marathi: `चला, ${concept} पासून सुरुवात करूया. ${summary} आपण हे छोटे, सोपे टप्पे घेऊन समजून घेऊ.`,
+    Hindi: `चलिए ${concept} से शुरुआत करते हैं। ${summary} हम इसे छोटे और आसान चरणों में समझेंगे।`,
+    Hinglish: `Chaliye ${concept} se shuru karte hain. ${summary} Hum ise chhote, simple steps mein samjhenge.`,
+    English: `Let's begin with ${concept}. ${summary} We will take it one clear step at a time.`,
+  };
+  return openings[setup.language as SetupValues['language']] || openings.English;
+}
+
+function getDemoReply(language: SetupValues['language'], topic: string) {
+  const replies: Record<SetupValues['language'], string> = {
+    Marathi: `छान प्रश्न. ${topic} समजून घेण्यासाठी तुमच्या प्रश्नातील मुख्य कल्पना वेगळी करूया. आधी तुम्हाला यातला कोणता भाग सर्वात स्पष्ट वाटतो?`,
+    Hindi: `बहुत अच्छा सवाल। ${topic} को समझने के लिए आपके सवाल की मुख्य बात अलग करते हैं। इसमें आपको कौन सा हिस्सा सबसे स्पष्ट लग रहा है?`,
+    Hinglish: `Achha question. ${topic} ko samajhne ke liye pehle tumhare question ka main idea pakadte hain. Isme kaunsa part sabse clear lag raha hai?`,
+    English: `Good question. Let’s isolate the main idea in your question about ${topic}. Which part feels clearest to you so far?`,
+  };
+  return `${replies[language] || replies.English} We can build from there.`;
+}
+
+function TeachingScreen({ response, setup, onBack }: { response: LessonResponse; setup: SetupValues; onBack: () => void }) {
+  const [question, setQuestion] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [messages, setMessages] = useState<ConversationMessage[]>(() => [{
+    id: 'opening',
+    role: 'teacher',
+    text: getOpeningExplanation(response, setup),
+  }]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || isSending) return;
+
+    const studentMessage: ConversationMessage = {
+      id: `student-${Date.now()}`,
+      role: 'student',
+      text: trimmedQuestion,
+    };
+    setMessages((current) => [...current, studentMessage]);
+    setQuestion('');
+    setSendError('');
+    setIsSending(true);
+
+    try {
+      const result = await requestTeachingMessage({ setup, lesson: response, question: trimmedQuestion });
+      setMessages((current) => [...current, {
+        id: `teacher-${Date.now()}`,
+        role: 'teacher',
+        text: result.message,
+      }]);
+    } catch (error) {
+      if (response.mode === 'demo') {
+        setMessages((current) => [...current, {
+          id: `teacher-demo-${Date.now()}`,
+          role: 'teacher',
+          text: getDemoReply(setup.language as SetupValues['language'], setup.topic),
+        }]);
+      } else {
+        setSendError(error instanceof Error ? error.message : 'Your message could not be sent. Please try again.');
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <main className="teaching-page min-h-[100dvh] text-[hsl(var(--foreground))]">
+      <div className="lesson-orbit lesson-orbit-one pointer-events-none" aria-hidden="true" />
+      <div className="lesson-orbit lesson-orbit-two pointer-events-none" aria-hidden="true" />
+      <div className="relative mx-auto w-full max-w-[1240px] px-5 py-6 sm:px-8 lg:px-12 lg:py-9">
+        <header className="reveal-up flex items-center justify-between gap-5">
+          <LessonBrand />
+          <button type="button" onClick={onBack} className="lesson-back-button" data-testid="button-back-plan">
+            <ArrowLeft size={16} strokeWidth={2.3} /> <span className="hidden sm:inline">VIEW PLAN</span><span className="sm:hidden">PLAN</span>
+          </button>
+        </header>
+
+        <section className="teaching-hero reveal-up-delay" aria-labelledby="teaching-title">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="lesson-kicker"><span className="lesson-kicker-dot" aria-hidden="true" /> Step 03 <span>/ Your lesson</span></p>
+            {response.mode === 'demo' && <span className="demo-badge" data-testid="status-teaching-demo-mode">DEMO MODE</span>}
+          </div>
+          <div className="mt-6 max-w-[800px]">
+            <h1 id="teaching-title" className="font-display text-[clamp(2.7rem,6vw,5.4rem)] font-extrabold leading-[0.96] tracking-[-0.07em]" data-testid="text-teaching-title">Let’s make it <span className="text-[hsl(var(--primary))]">click.</span></h1>
+            <p className="mt-5 max-w-[680px] text-[17px] leading-8 text-[hsl(var(--muted-foreground))]">Ask freely, test your understanding, or pause on any idea. Your teacher will meet you at your pace.</p>
+          </div>
+        </section>
+
+        <section className="teaching-context-grid reveal-up-delay-2" aria-label="Current lesson details">
+          <ContextItem label="Topic" value={setup.topic} icon={<BookOpen size={16} />} />
+          <ContextItem label="Language" value={setup.language} icon={<Globe2 size={16} />} />
+          <ContextItem label="Level" value={setup.level} icon={<GraduationCap size={16} />} />
+          <ContextItem label="Time" value={setup.availableTime} icon={<Clock3 size={16} />} />
+        </section>
+
+        <div className="teaching-layout">
+          <section className="teaching-conversation-card" aria-labelledby="conversation-heading">
+            <div className="flex items-start justify-between gap-4 border-b border-[hsl(var(--border)/.8)] pb-5">
+              <div className="flex items-start gap-3">
+                <span className="teaching-card-icon" aria-hidden="true"><MessageCircle size={19} /></span>
+                <div><p className="lesson-section-eyebrow">Live lesson</p><h2 id="conversation-heading" className="mt-1 font-display text-2xl font-extrabold tracking-[-0.04em]">Your conversation</h2></div>
+              </div>
+              <span className="teaching-live-status"><span aria-hidden="true" /> READY</span>
+            </div>
+
+            <div className="conversation-list" aria-live="polite" aria-label="Lesson conversation" data-testid="conversation-area">
+              {messages.map((message, index) => (
+                <article key={message.id} className={`conversation-message ${message.role === 'student' ? 'conversation-message-student' : 'conversation-message-teacher'}`} data-testid={`message-${message.role}-${index}`}>
+                  <div className="conversation-avatar" aria-hidden="true">{message.role === 'teacher' ? <Sparkles size={16} /> : <UserRound size={16} />}</div>
+                  <div className="min-w-0">
+                    <p className="conversation-label">{message.role === 'teacher' ? 'AI Teacher' : 'You'}</p>
+                    <p className="mt-1 text-[15px] leading-7">{message.text}</p>
+                  </div>
+                </article>
+              ))}
+              {isSending && (
+                <div className="conversation-message conversation-message-teacher" role="status" data-testid="status-teaching-response">
+                  <div className="conversation-avatar" aria-hidden="true"><Sparkles size={16} /></div>
+                  <div><p className="conversation-label">AI Teacher</p><div className="teaching-typing mt-3" aria-label="Teacher is thinking"><span /><span /><span /></div></div>
+                </div>
+              )}
+            </div>
+
+            <form className="teaching-composer" onSubmit={handleSubmit}>
+              <label htmlFor="teaching-question" className="sr-only">Ask your teacher a question</label>
+              <textarea id="teaching-question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask a question or explain what you understand..." rows={2} disabled={isSending} data-testid="input-teaching-question" />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">Press Send when you’re ready.</p>
+                <button type="submit" className="teaching-send-button" disabled={!question.trim() || isSending} data-testid="button-send-teaching-message"><Send size={16} /> SEND</button>
+              </div>
+              {sendError && <p className="mt-3 text-sm font-medium text-[hsl(var(--destructive))]" role="alert" data-testid="status-teaching-error">{sendError}</p>}
+            </form>
+          </section>
+
+          <aside className="space-y-6">
+            <section className="teaching-explanation-card" aria-labelledby="first-explanation-heading">
+              <div className="flex items-start gap-3"><span className="teaching-card-icon teaching-card-icon-warm" aria-hidden="true"><Lightbulb size={19} /></span><div><p className="lesson-section-eyebrow">First explanation</p><h2 id="first-explanation-heading" className="mt-1 font-display text-xl font-extrabold tracking-[-0.035em]">Start with the idea</h2></div></div>
+              <p className="mt-5 text-[15px] leading-7" data-testid="text-first-explanation">{getOpeningExplanation(response, setup)}</p>
+            </section>
+            <section className="teaching-next-card" aria-labelledby="next-step-heading">
+              <p className="lesson-section-eyebrow">A gentle prompt</p>
+              <h2 id="next-step-heading" className="mt-2 font-display text-xl font-extrabold tracking-[-0.04em]">What feels unclear?</h2>
+              <p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">There is no wrong starting point. Ask about a word, a step, or a real-world example.</p>
+              <button type="button" onClick={() => setQuestion('Can you show me a simple real-world example?')} className="teaching-prompt-button" data-testid="button-use-teaching-prompt">USE A PROMPT <ArrowRight size={15} /></button>
+            </section>
+          </aside>
+        </div>
 
         <footer className="mt-12 flex items-center justify-between border-t border-[hsl(var(--border)/.72)] pt-4 text-[11px] font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
           <span>Made for curious minds.</span><span className="hidden sm:inline">A thoughtful start to every session</span>

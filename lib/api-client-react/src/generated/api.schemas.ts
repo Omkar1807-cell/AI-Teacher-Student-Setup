@@ -78,3 +78,26 @@ export interface LessonPlanResponse {
   plan: LessonPlan;
 }
 
+export interface TeachingMessageInput {
+  setup: LessonPlanInput;
+  lesson: LessonPlanResponse;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  question: string;
+}
+
+export type TeachingMessageResponseMode = typeof TeachingMessageResponseMode[keyof typeof TeachingMessageResponseMode];
+
+
+export const TeachingMessageResponseMode = {
+  gemini: 'gemini',
+  demo: 'demo',
+} as const;
+
+export interface TeachingMessageResponse {
+  mode: TeachingMessageResponseMode;
+  message: string;
+}
+

@@ -22,7 +22,9 @@ import type {
 import type {
   HealthStatus,
   LessonPlanInput,
-  LessonPlanResponse
+  LessonPlanResponse,
+  TeachingMessageInput,
+  TeachingMessageResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -200,5 +202,77 @@ export const useGenerateLessonPlan = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateLessonPlanMutationOptions(options));
+    }
+
+export const getGenerateTeachingMessageUrl = () => {
+
+
+
+
+  return `/api/teaching-message`
+}
+
+/**
+ * Answers a student's question using the selected lesson context.
+ * @summary Answer a student's lesson question
+ */
+export const generateTeachingMessage = async (teachingMessageInput: TeachingMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<TeachingMessageResponse> => {
+
+  return customFetch<TeachingMessageResponse>(getGenerateTeachingMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(teachingMessageInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateTeachingMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateTeachingMessage>>, TError,{data: BodyType<TeachingMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateTeachingMessage>>, TError,{data: BodyType<TeachingMessageInput>}, TContext> => {
+
+const mutationKey = ['generateTeachingMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateTeachingMessage>>, {data: BodyType<TeachingMessageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateTeachingMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateTeachingMessageMutationResult = NonNullable<Awaited<ReturnType<typeof generateTeachingMessage>>>
+    export type GenerateTeachingMessageMutationBody = BodyType<TeachingMessageInput>
+    export type GenerateTeachingMessageMutationError = ErrorType<void>
+
+    /**
+ * @summary Answer a student's lesson question
+ */
+export const useGenerateTeachingMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateTeachingMessage>>, TError,{data: BodyType<TeachingMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateTeachingMessage>>,
+        TError,
+        {data: BodyType<TeachingMessageInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateTeachingMessageMutationOptions(options));
     }
 

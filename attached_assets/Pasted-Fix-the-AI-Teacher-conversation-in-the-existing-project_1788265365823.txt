@@ -1,0 +1,101 @@
+Fix the AI Teacher conversation in the existing project.
+
+IMPORTANT:
+Do not redesign the existing UI.
+Do not remove or break the current Student Setup, Lesson Plan, or Teaching screens.
+Inspect the existing code first and fix the current conversation flow.
+
+CURRENT PROBLEM:
+When the student asks different questions, the AI Teacher gives the same generic fallback response. I need topic-specific and question-specific answers.
+
+REQUIREMENTS:
+
+1. When the student sends a question, send the actual student question to the server-side API.
+
+2. Also send the current:
+- Topic
+- Student Level
+- Selected Language
+- Available Time
+- Learning Goal
+- Current lesson context
+- Previous conversation if available
+
+3. Use Gemini API from the SERVER SIDE only.
+
+4. Use the GEMINI_API_KEY environment variable / Replit Secret.
+NEVER expose the API key in frontend/client-side code.
+
+5. The AI Teacher must answer the student's ACTUAL question.
+
+Example:
+
+Topic:
+Newton's Laws of Motion
+
+Level:
+Beginner
+
+Language:
+Marathi
+
+Student question:
+"What is the second law of motion?"
+
+The answer should explain Newton's Second Law in beginner-friendly Marathi, including:
+- the main concept
+- F = ma
+- meaning of force, mass and acceleration
+- one simple real-world example
+
+Do NOT return a generic response such as:
+"Good question. Let's isolate the main idea."
+
+6. After answering, ask ONE short follow-up question to check the student's understanding.
+
+7. The response must respect the selected language:
+- English → English
+- Hindi → Hindi
+- Marathi → Marathi
+- Hinglish → Hinglish
+
+8. The response must respect the student's level:
+- Beginner → simple explanation and analogy
+- Intermediate → moderate detail
+- Advanced → more technical detail
+
+9. If the Gemini API is unavailable or GEMINI_API_KEY is missing:
+use the existing clearly labeled DEMO MODE fallback.
+
+However, DEMO MODE should also return question-specific demo answers for common Newton's Laws questions instead of the same generic response.
+
+10. Do not create a separate chatbot.
+Fix the existing AI Teacher conversation.
+
+11. Add proper loading state while waiting for the AI response.
+
+12. Add friendly error handling if the API request fails.
+
+13. Keep the existing UI/design unchanged.
+
+14. Make sure the student's question and AI answer appear correctly in the conversation.
+
+15. Test this exact flow:
+
+Student Setup
+→ Newton's Laws of Motion
+→ Beginner
+→ Marathi
+→ Start Learning
+→ Start Teaching
+→ Student asks:
+"What is second law of motion?"
+→ AI gives a specific Marathi answer
+→ AI asks one follow-up question.
+
+Then test another question:
+"What is first law of motion?"
+
+Make sure the two answers are different and relevant to the questions.
+
+Before finishing, inspect the existing implementation, make the minimum necessary code changes, run the application, and fix any errors.
